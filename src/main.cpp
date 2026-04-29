@@ -35,14 +35,14 @@ static std::string type_name(const std::type_info& ti) {
 #endif
 
 struct BZEHeader {
-    uint unk;
-    uint section_count;
+    glm::uint unk;
+    glm::uint section_count;
 };
 
 struct SectionHeader {
-    uint index;
-    uint size;
-    uint aligned_size;
+    glm::uint index;
+    glm::uint size;
+    glm::uint aligned_size;
 };
 
 struct Section {
@@ -803,7 +803,7 @@ struct Tag09_16 {
     }
 };
 
-struct Tag09_1С {
+struct Tag09_1C {
     u8 data[8];
 
     void pretty_print(std::ostream &os, const int indent = 0) const {
@@ -837,7 +837,7 @@ struct Tag09 {
     std::vector<Tag09_10> tag10;
     std::vector<Tag09_11> tag11;
     std::vector<Tag09_16> tag16;
-    std::vector<Tag09_1С> tag1C;
+    std::vector<Tag09_1C> tag1C;
     std::vector<Tag09_1F> tag1F;
     std::vector<Tag09_33> tag33;
 
@@ -1518,8 +1518,8 @@ void export_image(const std::filesystem::path &orig_file, const SubSection &sect
     auto rgba_data = decoded_image.writable_view_as<RGBA>();
     auto color_palette = palette_data.readonly_view_as<u16>();
 
-    auto decode_rgba5551 = [](const uint16_t be) -> std::array<u8, 4> {
-        // uint16_t v = static_cast<uint16_t>((be >> 8) | (be << 8));
+    auto decode_rgba5551 = [](const glm::uint16_t be) -> std::array<u8, 4> {
+        // glm::uint16_t v = static_cast<glm::uint16_t>((be >> 8) | (be << 8));
         const u16 v = be;
 
         const u8 a1 = (v >> 15) & 0x01;
@@ -1528,9 +1528,9 @@ void export_image(const std::filesystem::path &orig_file, const SubSection &sect
         const u8 r5 = v & 0x1F;
 
         const u8 a8 = a1 ? 0 : 255;
-        const u8 r8 = static_cast<uint8_t>((r5 * 527 + 23) >> 6);
-        const u8 g8 = static_cast<uint8_t>((g5 * 527 + 23) >> 6);
-        const u8 b8 = static_cast<uint8_t>((b5 * 527 + 23) >> 6);
+        const u8 r8 = static_cast<glm::uint8_t>((r5 * 527 + 23) >> 6);
+        const u8 g8 = static_cast<glm::uint8_t>((g5 * 527 + 23) >> 6);
+        const u8 b8 = static_cast<glm::uint8_t>((b5 * 527 + 23) >> 6);
 
         return {r8, g8, b8, 0xFF};
     };
@@ -1635,7 +1635,7 @@ void export_model(const IO::Buffer &sec4, const OffsetAndSize &section4_resource
     }
     const auto mesh_count = resource_data.reinterpret_at<u32>(8);
     if (*mesh_count == 0) {
-        GLog_Info("Model @ {} in section 4 has 0 mehses", section4_resource.offset);
+        GLog_Info("Model @ {} in section 4 has 0 meshes", section4_resource.offset);
         return;
     }
 
@@ -1685,21 +1685,19 @@ void export_model(const IO::Buffer &sec4, const OffsetAndSize &section4_resource
     static_assert(sizeof(Prim74) == 24);
 
     struct Prim64 {
-        u32 unk[2];
-        RGBA color[5];
+        s16 unk0[3];
+        s16 unk1[3];
+        RGBA color[4];
         u16 indices[4];
     };
     static_assert(sizeof(Prim64) == 36);
 
     struct Prim60 {
-        u16 unk0;
+        u16 unk0[5];
         u16 i0;
-        u16 unk1;
-        u16 i1;
-        u16 unk2;
-        u16 i2;
         RGBA color[3];
-        u16 unk[2];
+        u16 i1;
+        u16 i2;
     };
     static_assert(sizeof(Prim60) == 28);
 
@@ -1772,9 +1770,9 @@ void export_model(const IO::Buffer &sec4, const OffsetAndSize &section4_resource
                 case 60: {
                     const auto prim = primitive_reader.read_pod<Prim60>();
                     assert(is_valid_poly(prim.i0,prim.i1, prim.i2));
-                    // indices.emplace_back(vertex_map.at(prim.i0));
-                    // indices.emplace_back(vertex_map.at(prim.i1));
-                    // indices.emplace_back(vertex_map.at(prim.i2));
+                    indices.emplace_back(vertex_map.at(prim.i0));
+                    indices.emplace_back(vertex_map.at(prim.i1));
+                    indices.emplace_back(vertex_map.at(prim.i2));
                     break;
                 }
                 case 56: {
@@ -1793,7 +1791,7 @@ void export_model(const IO::Buffer &sec4, const OffsetAndSize &section4_resource
                                section4_resource.offset+ 12 + mesh.primitive_offset + primitive_reader.
                                get_position(
                                ));
-                    throw std::runtime_error("Unsuported primitive");
+                    throw std::runtime_error("Unsupported primitive");
                 }
             }
         }
@@ -1851,17 +1849,17 @@ int main() {
 
     auto sec3 = bze_file.get_section(3);
     auto sec4 = bze_file.get_section(4);
-    // for (const auto &section: bze_file.tags.textures.sections) {
-    //     export_image(path, section, sec3);
-    // }
-    // export_languages(path, bze_file.tags.tag49, sec3);
+    //for (const auto &section: bze_file.tags.textures.sections) {
+    //    export_image(path, section, sec3);
+    //}
+    //export_languages(path, bze_file.tags.tag49, sec3);
 
-    // AppState app(path.parent_path().parent_path());
-    // for (const auto& tag22: bze_file.tags.tag22) {
-    //     for (const auto &section4_resource: tag22.section4_resources) {
-    //         export_model(sec4, section4_resource, app.helper(), path);
-    //     }
-    // }
+    AppState app(path.parent_path().parent_path());
+    for (const auto& tag22: bze_file.tags.tag22) {
+        for (const auto &section4_resource: tag22.section4_resources) {
+            export_model(sec4.value(), section4_resource, app.helper(), path);
+        }
+    }
 
     std::cout << "Hello, World!" << std::endl;
     return 0;
