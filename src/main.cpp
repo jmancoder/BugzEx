@@ -21,7 +21,7 @@
 #include <cxxabi.h>
 #include <memory>
 static std::string type_name(const std::type_info& ti) {
-    int status = 0;
+    i32 status = 0;
     std::unique_ptr<char, void(*)(void*)> res{
         abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status),
         std::free
@@ -35,14 +35,14 @@ static std::string type_name(const std::type_info& ti) {
 #endif
 
 struct BZEHeader {
-    glm::uint unk;
-    glm::uint section_count;
+    u32 unk;
+    u32 section_count;
 };
 
 struct SectionHeader {
-    glm::uint index;
-    glm::uint size;
-    glm::uint aligned_size;
+    u32 index;
+    u32 size;
+    u32 aligned_size;
 };
 
 struct Section {
@@ -61,8 +61,8 @@ struct Section {
     }
 };
 
-static void print_indent(std::ostream &os, const int indent) {
-    for (int i = 0; i < indent; ++i) os.put(' ');
+static void print_indent(std::ostream &os, const u32 indent) {
+    for (u32 i = 0; i < indent; ++i) os.put(' ');
 }
 
 template<typename T>
@@ -73,7 +73,7 @@ static void print_scalar(std::ostream &os, const T &value) {
                 << static_cast<u32>(value)
                 << std::dec << std::setfill(' ') << ")";
     } else if constexpr (std::is_same_v<T, i8>) {
-        const auto v = static_cast<int>(value);
+        const auto v = static_cast<i32>(value);
         os << v << " (0x"
                 << std::uppercase << std::hex << static_cast<u32>(static_cast<u8>(value))
                 << std::dec << ")";
@@ -101,13 +101,13 @@ static void print_hex_u8_array(std::ostream &os, const u8 (&arr)[N]) {
 }
 
 template<typename T, size_t N>
-static void print_array(std::ostream &os, const T (&arr)[N], int indent);
+static void print_array(std::ostream &os, const T (&arr)[N], u32 indent);
 
 template<typename T>
-static void print_value(std::ostream &os, const T &value, int indent);
+static void print_value(std::ostream &os, const T &value, u32 indent);
 
 template<typename T, size_t N>
-static void print_array(std::ostream &os, const T (&arr)[N], int indent) {
+static void print_array(std::ostream &os, const T (&arr)[N], u32 indent) {
     if constexpr (std::is_same_v<T, u8>) {
         print_hex_u8_array(os, arr);
     } else {
@@ -129,7 +129,7 @@ static void print_array(std::ostream &os, const T (&arr)[N], int indent) {
 }
 
 template<typename T, size_t N>
-static void print_array(std::ostream &os, const std::array<T, N> &arr, int indent) {
+static void print_array(std::ostream &os, const std::array<T, N> &arr, u32 indent) {
     if constexpr (std::is_same_v<T, u8>) {
         print_hex_u8_array(os, arr);
     } else {
@@ -151,7 +151,7 @@ static void print_array(std::ostream &os, const std::array<T, N> &arr, int inden
 }
 
 template<typename T>
-static void print_vector(std::ostream &os, const std::vector<T> &vec, const int indent) {
+static void print_vector(std::ostream &os, const std::vector<T> &vec, const u32 indent) {
     os << "[\n";
     for (size_t i = 0; i < vec.size(); ++i) {
         print_indent(os, indent + 2);
@@ -163,7 +163,7 @@ static void print_vector(std::ostream &os, const std::vector<T> &vec, const int 
     os << "]";
 }
 
-static void print_field_name(std::ostream &os, const std::string_view name, const int indent) {
+static void print_field_name(std::ostream &os, const std::string_view name, const u32 indent) {
     print_indent(os, indent);
     os << name << " = ";
 }
@@ -172,13 +172,13 @@ static void print_struct_begin(std::ostream &os) {
     os << "{\n";
 }
 
-static void print_struct_end(std::ostream &os, const int indent) {
+static void print_struct_end(std::ostream &os, const u32 indent) {
     print_indent(os, indent);
     os << "}";
 }
 
 template<typename T>
-static void print_value(std::ostream &os, const T &value, int indent) {
+static void print_value(std::ostream &os, const T &value, u32 indent) {
     using U = std::remove_cvref_t<T>;
 
     if constexpr (std::is_integral_v<T>) {
@@ -190,7 +190,7 @@ static void print_value(std::ostream &os, const T &value, int indent) {
 }
 
 struct PrettyPrintable {
-    virtual void pretty_print(std::ostream &os, int indent) const = 0;
+    virtual void pretty_print(std::ostream &os, u32 indent) const = 0;
 
     virtual ~PrettyPrintable() = default;
 };
@@ -218,7 +218,7 @@ template<typename T>
 constexpr bool is_std_array_v = is_std_array<T>::value;
 
 template<typename T>
-static void print_field(std::ostream &os, const std::string_view name, T &value, int indent) {
+static void print_field(std::ostream &os, const std::string_view name, T &value, u32 indent) {
     using U = std::remove_cvref_t<T>;
     print_field_name(os, name, indent);
     if constexpr (std::is_array_v<U> || is_std_array_v<U>) {
@@ -237,7 +237,7 @@ struct OffsetAndSize {
     u32 offset;
     u32 size;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, offset, indent + 2);
         PRINT_FIELD(os, size, indent + 2);
@@ -250,7 +250,7 @@ struct Tag3B_unk1 {
     u32 unk1;
     u32 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -262,7 +262,7 @@ struct Tag3B_unk1 {
 struct Tag3B_unk2 {
     u16 unk[3];
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         PRINT_FIELD(os, unk, indent);
     }
 };
@@ -270,7 +270,7 @@ struct Tag3B_unk2 {
 struct Tag3B_unk3 {
     u16 unk[14];
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         PRINT_FIELD(os, unk, indent);
     }
 };
@@ -278,7 +278,7 @@ struct Tag3B_unk3 {
 struct Tag3B_unk0 {
     u8 a, b, c, d;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, a, indent + 2);
         PRINT_FIELD(os, b, indent + 2);
@@ -294,7 +294,7 @@ struct Tag3B {
     std::vector<Tag3B_unk2> unk2;
     std::vector<Tag3B_unk3> unk3;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -307,7 +307,7 @@ struct Tag3B {
 struct Localisation {
     std::array<OffsetAndSize, 6> languages;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, languages, indent+2);
         print_struct_end(os, indent);
@@ -317,7 +317,7 @@ struct Localisation {
 struct LocalisationStrings {
     std::vector<Localisation> localisations;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, localisations, indent + 2);
         print_struct_end(os, indent);
@@ -328,7 +328,7 @@ struct SubSection {
     u32 offset;
     u32 index;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, offset, indent + 2);
         PRINT_FIELD(os, index, indent + 2);
@@ -339,7 +339,7 @@ struct SubSection {
 struct Section3Resources {
     std::vector<SubSection> sections;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, sections, indent + 2);
         print_struct_end(os, indent);
@@ -349,7 +349,7 @@ struct Section3Resources {
 struct Section4Resource2 {
     std::vector<OffsetAndSize> items;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, items, indent + 2);
         print_struct_end(os, indent);
@@ -361,7 +361,7 @@ struct Tag22_unk3 {
     u32 unk1;
     u32 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -374,7 +374,7 @@ struct Section4Resource {
     u32 unk0;
     OffsetAndSize offset_and_size;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, offset_and_size, indent + 2);
@@ -384,6 +384,12 @@ struct Section4Resource {
 
 struct Tag22_28 {
     u8 data[3];
+
+    void pretty_print(std::ostream &os, const u32 indent) const {
+        print_struct_begin(os);
+        PRINT_FIELD(os, data, indent + 2);
+        print_struct_end(os, indent);
+    }
 };
 
 struct Tag22 {
@@ -395,7 +401,7 @@ struct Tag22 {
     std::vector<Section4Resource> section4_resources4;
     std::vector<Tag22_28> tag28;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, section4_resources, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -403,6 +409,7 @@ struct Tag22 {
         PRINT_FIELD(os, unk3, indent + 2);
         PRINT_FIELD(os, section4_resources3, indent + 2);
         PRINT_FIELD(os, section4_resources4, indent + 2);
+        PRINT_FIELD(os, tag28, indent + 2);
         print_struct_end(os, indent);
     }
 };
@@ -411,7 +418,7 @@ struct Tag20_unk1 {
     u32 unk0;
     u32 unk1;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -424,7 +431,7 @@ struct Tag20_unk2 {
     u16 unk1;
     u16 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -438,7 +445,7 @@ struct Tag20_unk3 {
     u32 unk1;
     u32 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -452,7 +459,7 @@ struct Tag20_unk4 {
     u32 unk1;
     u32 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -470,7 +477,7 @@ struct Tag20 {
     std::vector<u16> unk5;
     std::vector<u8> unk6;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -488,7 +495,7 @@ struct Tag07_unk1 {
     u32 unk1;
     u32 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -502,7 +509,7 @@ struct Tag07_unk2 {
     u16 unk1;
     u16 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -516,7 +523,7 @@ struct Tag07_unk3 {
     u32 unk1;
     u32 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -529,7 +536,7 @@ struct Tag07_unk6 {
     u32 unk0;
     u32 unk1;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -540,7 +547,7 @@ struct Tag07_unk6 {
 struct Tag07_unk11 {
     u32 unk[6];
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         PRINT_FIELD(os, unk, indent);
     }
 };
@@ -550,7 +557,7 @@ struct Tag07_unk12 {
     i16 unk1[2];
     i16 unk2[2];
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -564,7 +571,7 @@ struct Tag07_unk14 {
     u16 unk1;
     u16 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -577,7 +584,7 @@ struct Tag07_unk15 {
     u32 unk0;
     u32 unk1;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -588,7 +595,7 @@ struct Tag07_unk15 {
 struct Tag07_unk18 {
     u32 unk[8];
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         PRINT_FIELD(os, unk, indent);
     }
 };
@@ -596,7 +603,7 @@ struct Tag07_unk18 {
 struct Tag07_unk19 {
     u32 unk[8];
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         PRINT_FIELD(os, unk, indent);
     }
 };
@@ -606,7 +613,7 @@ struct Tag07_unk23 {
     u16 unk1;
     u16 unk2;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -646,7 +653,7 @@ struct Tag07 {
     std::vector<u32> unk22;
     std::vector<Tag07_unk23> unk23;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -679,7 +686,7 @@ struct Tag07 {
 struct Tag00_01 {
     u32 data[2];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -689,7 +696,7 @@ struct Tag00_01 {
 struct Tag00_02 {
     u32 data[2];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -699,7 +706,7 @@ struct Tag00_02 {
 struct Tag00_04 {
     u32 data[2];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -709,7 +716,7 @@ struct Tag00_04 {
 struct Tag00_44 {
     u32 data[3];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -719,7 +726,7 @@ struct Tag00_44 {
 struct Tag00_4C {
     u32 data[48/4];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -729,7 +736,7 @@ struct Tag00_4C {
 struct Tag00_4D {
     u32 data[48/4];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -744,7 +751,7 @@ struct Tag00 {
     std::vector<Tag00_4C> tag4C;
     std::vector<Tag00_4D> tag4D;
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, tag01, indent + 2);
         PRINT_FIELD(os, tag02, indent + 2);
@@ -759,7 +766,7 @@ struct Tag00 {
 struct Tag05_06 {
     u8 data[3];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -769,14 +776,14 @@ struct Tag05_06 {
 struct Tag05 {
     std::vector<Tag05_06> tag06;
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
     }
 };
 
 struct Tag09_10 {
     u8 data[12];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -786,7 +793,7 @@ struct Tag09_10 {
 struct Tag09_11 {
     u8 data[6];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -796,7 +803,7 @@ struct Tag09_11 {
 struct Tag09_16 {
     u8 data[8];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -806,7 +813,7 @@ struct Tag09_16 {
 struct Tag09_1C {
     u8 data[8];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -816,7 +823,7 @@ struct Tag09_1C {
 struct Tag09_1F {
     u8 data[1];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -826,7 +833,7 @@ struct Tag09_1F {
 struct Tag09_33 {
     u8 data[32];
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, data, indent + 2);
         print_struct_end(os, indent);
@@ -841,7 +848,7 @@ struct Tag09 {
     std::vector<Tag09_1F> tag1F;
     std::vector<Tag09_33> tag33;
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, tag10, indent + 2);
         PRINT_FIELD(os, tag11, indent + 2);
@@ -867,7 +874,7 @@ struct Tags {
     std::vector<Tag3B> tag3B{};
     std::vector<LocalisationStrings> tag49{};
 
-    void pretty_print(std::ostream &os, const int indent = 0) const {
+    void pretty_print(std::ostream &os, const u32 indent = 0) const {
         print_struct_begin(os);
         PRINT_FIELD(os, tag00, indent + 2);
         PRINT_FIELD(os, tag05, indent + 2);
@@ -1328,7 +1335,7 @@ struct BZEFile {
     BZEFile(IO::FilePtr &&file) : m_file(std::move(file)) {
         header = m_file->read_pod<BZEHeader>();
         section_headers.resize(header.section_count);
-        for (int i = 0; i < header.section_count; ++i) {
+        for (u32 i = 0; i < header.section_count; ++i) {
             section_headers[i] = m_file->read_pod<SectionHeader>();
         }
         m_file->align(2048);
@@ -1464,7 +1471,7 @@ struct ResourceHeader {
     u32 unk0;
     u32 unk1;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, unk0, indent + 2);
         PRINT_FIELD(os, unk1, indent + 2);
@@ -1478,7 +1485,7 @@ struct ImageHeader {
     u16 width;
     u16 height;
 
-    void pretty_print(std::ostream &os, const int indent) const {
+    void pretty_print(std::ostream &os, const u32 indent) const {
         print_struct_begin(os);
         PRINT_FIELD(os, size, indent + 2);
         PRINT_FIELD(os, unk2, indent + 2);
@@ -1536,8 +1543,8 @@ void export_image(const std::filesystem::path &orig_file, const SubSection &sect
     };
 
     if (resource_info->unk1 == 9) {
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
+        for (u32 y = 0; y < height; ++y) {
+            for (u32 x = 0; x < width; ++x) {
                 const u32 linear_index = y * width + x;
                 const u8 color_index = image_data[linear_index];
                 const auto &color = decode_rgba5551(color_palette[color_index]);
@@ -1545,8 +1552,8 @@ void export_image(const std::filesystem::path &orig_file, const SubSection &sect
             }
         }
     } else if (resource_info->unk1 == 8) {
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; x++) {
+        for (u32 y = 0; y < height; ++y) {
+            for (u32 x = 0; x < width; x++) {
                 const u32 linear_index = y * width + x;
                 const u8 color_index = image_data[linear_index];
                 const u8 c0 = color_index & 0x0F;
@@ -1598,7 +1605,7 @@ void export_languages(const std::filesystem::path &orig_file, const Localisation
             const auto string_count = table_size / 2;
             language_file.set_position(table_size, std::ios::beg);
             language.reserve(string_count);
-            for (int i = 0; i < string_count; ++i) {
+            for (u32 i = 0; i < string_count; ++i) {
                 language.emplace_back(language_file.read_cstring());
             }
             language_id++;
@@ -1625,7 +1632,7 @@ void export_languages(const std::filesystem::path &orig_file, const Localisation
 }
 
 void export_model(const IO::Buffer &sec4, const OffsetAndSize &section4_resource,
-    GltfHelper &helper, const std::filesystem::path &path, int model_id) {
+    GltfHelper &helper, const std::filesystem::path &path, u32 model_id) {
 
     const auto resource_data = sec4.readonly_view(section4_resource.offset, section4_resource.size);
     const auto ident = resource_data.reinterpret_at<u32>(0);
@@ -1659,7 +1666,7 @@ void export_model(const IO::Buffer &sec4, const OffsetAndSize &section4_resource
     // }
     // const auto vertex_buffer = mesh_data.subview(meshes[0].vertex_offset,global_vertex_count*16).readonly_view_as<u32>();
     // std::unordered_map<u16, u32> vertex_map(global_vertex_count);
-    // for (int i = 0; i < global_vertex_count; ++i) {
+    // for (u32 i = 0; i < global_vertex_count; ++i) {
     //     const auto stored_id = vertex_buffer[i*4+3];
     //     vertex_map[stored_id] = i;
     // }
@@ -1718,7 +1725,7 @@ void export_model(const IO::Buffer &sec4, const OffsetAndSize &section4_resource
         positions.reserve(mesh.vertex_count);
         std::unordered_map<u16, u16> vertex_map(mesh.vertex_count);
 
-        for (int i = 0; i < mesh.vertex_count; ++i) {
+        for (u32 i = 0; i < mesh.vertex_count; ++i) {
             const auto &[pos, index] = vertex_buffer[i];
             positions.emplace_back(pos * 0.1f);
             vertex_map[index & (~0x8000)] = i;
@@ -1731,7 +1738,7 @@ void export_model(const IO::Buffer &sec4, const OffsetAndSize &section4_resource
         };
 
         std::vector<u16> indices;
-        for (int i = 0; i < mesh.primitive_count; ++i) {
+        for (u32 i = 0; i < mesh.primitive_count; ++i) {
             const u16 prim_id = primitive_reader.read_pod<u16>();
             const u8 unk = primitive_reader.read_pod<u8>();
             const u8 prim_type = primitive_reader.read_pod<u8>();
@@ -1862,7 +1869,7 @@ int main() {
     //export_languages(path, bze_file.tags.tag49, sec3);
 
     AppState app(path.parent_path().parent_path());
-    for (int i = 0; i < bze_file.tags.tag22.size(); ++i) {
+    for (u32 i = 0; i < bze_file.tags.tag22.size(); ++i) {
         const Tag22& tag22 = bze_file.tags.tag22[i];
         for (const auto &section4_resource: tag22.section4_resources) {
             export_model(sec4.value(), section4_resource, app.helper(), path, i);
